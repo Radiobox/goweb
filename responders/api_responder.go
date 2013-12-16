@@ -58,7 +58,7 @@ type APIResponder interface {
 	//
 	// This method should be used when the Goweb Standard Response Object does not satisfy the needs of
 	// the API, but other Respond* methods are recommended.
-	WriteResponseObject(ctx context.Context, status int, responseObject interface{}) error
+	WriteResponseObject(ctx context.Context, status int, responseObject interface{}, optionsSlice ...map[string]interface{}) error
 
 	// RespondWithData responds with the specified data, no errors and a 200 StatusOK response.
 	RespondWithData(ctx context.Context, data interface{}) error

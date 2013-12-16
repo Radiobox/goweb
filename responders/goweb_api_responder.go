@@ -95,7 +95,11 @@ func (a *GowebAPIResponder) SetStandardResponseObjectTransformer(transformer fun
 //
 // This method should be used when the Goweb Standard Response Object does not satisfy the needs of
 // the API, but other Respond* methods are recommended.
-func (a *GowebAPIResponder) WriteResponseObject(ctx context.Context, status int, responseObject interface{}) error {
+//
+// If you need to pass any additional options to the codec, you may
+// pass an optional map[string]interface{} argument which will be used
+// as the starting value for the options passed to the chosen codec.
+func (a *GowebAPIResponder) WriteResponseObject(ctx context.Context, status int, responseObject interface{}, optionsSlice ...map[string]interface{}) error {
 
 	service := a.GetCodecService()
 
@@ -109,13 +113,19 @@ func (a *GowebAPIResponder) WriteResponseObject(ctx context.Context, status int,
 		return codecError
 	}
 
-	var options map[string]interface{}
+	options := make(map[string]interface{})
+	if len(optionsSlice) > 0 {
+		options = optionsSlice[0]
+	}
 
 	// do we need to add some options?
 	if hasCallback {
-		options = map[string]interface{}{constants.OptionKeyClientCallback: ctx.QueryValue(CallbackParameter)}
+		options[constants.OptionKeyClientCallback] = ctx.QueryValue(CallbackParameter)
 	}
 
+	// Make sure the content-type is set, in case the codec needs to
+	// know which content-type it matched for this request.
+	ctx.HttpResponseWriter().Header().Set("Content-Type", codec.ContentType()) // TODO: test me
 	output, marshalErr := service.MarshalWithCodec(codec, responseObject, options)
 
 	if marshalErr != nil {
@@ -123,7 +133,6 @@ func (a *GowebAPIResponder) WriteResponseObject(ctx context.Context, status int,
 	}
 
 	// use the HTTP responder to respond
-	ctx.HttpResponseWriter().Header().Set("Content-Type", codec.ContentType()) // TODO: test me
 	a.httpResponder.With(ctx, status, output)
 
 	return nil
